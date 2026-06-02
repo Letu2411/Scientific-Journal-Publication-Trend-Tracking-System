@@ -36,7 +36,11 @@ async function apiCall(endpoint, method = "GET", body = null) {
 // ============ AUTHENTICATION STATE ============
 let currentUser = null;
 const registeredUsers = [];  // Will be populated from backend
-let users = [];  // Will be populated from backend
+let users = [
+  { userId: "U-201", name: "Dr. Minh Nguyen", email: "minh.nguyen@scipub.test", role: "User", status: "Active" },
+  { userId: "U-301", name: "Linh Tran", email: "linh.tran@scipub.test", role: "User", status: "Active" },
+  { userId: "U-401", name: "Bao Pham", email: "bao.pham@scipub.test", role: "User", status: "Active" }
+];
 
 // ============ APPLICATION DATA ============
 const fields = [
@@ -100,12 +104,6 @@ const trendData = [
   { date: "2026", fieldId: "materials", publicationCount: 137900, citationCount: 688000 }
 ];
 
-const users = [
-  { userId: "U-201", name: "Dr. Minh Nguyen", email: "minh.nguyen@scipub.test", role: "User", status: "Active" },
-  { userId: "U-301", name: "Linh Tran", email: "linh.tran@scipub.test", role: "User", status: "Active" },
-  { userId: "U-401", name: "Bao Pham", email: "bao.pham@scipub.test", role: "User", status: "Active" }
-];
-
 let savedSearches = [
   { id: "S-01", query: "field:Artificial Intelligence impactFactor > 8", owner: "U-201", status: "Active" },
   { id: "S-02", query: "citations > 900 publicationDate:2026", owner: "U-201", status: "Active" },
@@ -136,6 +134,12 @@ const registerLink = document.querySelector("#registerLink");
 const forgotPasswordLink = document.querySelector("#forgotPasswordLink");
 const backToLoginLink = document.querySelector("#backToLoginLink");
 const backToLoginLink2 = document.querySelector("#backToLoginLink2");
+
+// Debug: Check if link elements exist
+if (!registerLink) console.warn("registerLink not found");
+if (!forgotPasswordLink) console.warn("forgotPasswordLink not found");
+if (!backToLoginLink) console.warn("backToLoginLink not found");
+if (!backToLoginLink2) console.warn("backToLoginLink2 not found");
 
 const pageTitle = document.querySelector("#pageTitle");
 const activeRoleLabel = document.querySelector("#activeRole");
@@ -767,6 +771,7 @@ async function registerUser(name, email, username, password, confirmPassword) {
     });
 
     if (response.user) {
+      registeredUsers.push(response.user);
       showDialog(
         "Account Created",
         `Welcome, ${name}! Your account has been created successfully. Please log in with your credentials.`,
@@ -792,15 +797,31 @@ async function loadUsers() {
   }
 }
 
-function resetPassword(email) {
-  const user = registeredUsers.find((u) => u.email === email);
-  if (user) {
-    // In a real app, send email with reset link
-    showNotification("Password reset link sent to " + email);
+async function resetPassword(email) {
+  try {
+    // In a real app, this would call a backend API to send password reset email
+    // For now, we'll simulate the backend response
+    if (!email || !email.includes("@")) {
+      showNotification("Please enter a valid email address!", "error");
+      return false;
+    }
+
+    // Simulate API call delay
+    showNotification("Sending password reset link...");
+    
+    // In production, uncomment and use this:
+    // const response = await apiCall("/auth/forgot-password", "POST", { email });
+    // if (response) { ... }
+
+    showDialog(
+      "Reset Link Sent",
+      `A password reset link has been sent to ${email}. Please check your email and follow the instructions to reset your password.`,
+      "success"
+    );
     showAuthForm("login");
     return true;
-  } else {
-    showNotification("Email not found!", "error");
+  } catch (error) {
+    showNotification(error.message || "Failed to send reset link!", "error");
     return false;
   }
 }
@@ -881,19 +902,18 @@ navItems.forEach((item) => {
 });
 
 // ============ AUTHENTICATION EVENT LISTENERS ============
-loginFormElement.addEventListener("submit", (e) => {
+loginFormElement.addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = loginEmailInput.value.trim();
   const password = loginPasswordInput.value;
 
-  if (loginUser(email, password)) {
+  const loggedIn = await loginUser(email, password);
+  if (loggedIn) {
     loginFormElement.reset();
-  } else {
-    showNotification("Invalid email or password!", "error");
   }
 });
 
-registerFormElement.addEventListener("submit", (e) => {
+registerFormElement.addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = registerNameInput.value.trim();
   const username = registerUsernameInput.value.trim();
@@ -901,7 +921,8 @@ registerFormElement.addEventListener("submit", (e) => {
   const password = registerPasswordInput.value;
   const confirmPassword = registerConfirmPasswordInput.value;
 
-  if (registerUser(name, email, username, password, confirmPassword)) {
+  const registered = await registerUser(name, email, username, password, confirmPassword);
+  if (registered) {
     registerFormElement.reset();
   }
 });
@@ -909,8 +930,16 @@ registerFormElement.addEventListener("submit", (e) => {
 forgotPasswordFormElement.addEventListener("submit", (e) => {
   e.preventDefault();
   const email = resetEmailInput.value.trim();
+  
+  if (!email) {
+    showNotification("Please enter your email address!", "error");
+    return;
+  }
+  
   resetPassword(email);
-  forgotPasswordFormElement.reset();
+  setTimeout(() => {
+    forgotPasswordFormElement.reset();
+  }, 1000);
 });
 
 registerLink.addEventListener("click", () => showAuthForm("register"));
