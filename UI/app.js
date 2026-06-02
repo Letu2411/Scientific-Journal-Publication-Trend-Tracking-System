@@ -1,10 +1,42 @@
+// ============ API CONFIGURATION ============
+const API_BASE_URL = "http://localhost:8080/api";
+let authToken = localStorage.getItem("authToken");
+
+async function apiCall(endpoint, method = "GET", body = null) {
+  const options = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+    }
+  };
+
+  if (authToken) {
+    options.headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "API Error");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
+}
+
 // ============ AUTHENTICATION STATE ============
 let currentUser = null;
-const registeredUsers = [
-  { userId: "U-201", name: "Dr. Minh Nguyen", email: "minh.nguyen@scipub.test", password: "test123", role: "Researcher", status: "Active" },
-  { userId: "U-301", name: "Linh Tran", email: "linh.tran@scipub.test", password: "test123", role: "Editor", status: "Assigned" },
-  { userId: "U-401", name: "Bao Pham", email: "bao.pham@scipub.test", password: "test123", role: "Admin", status: "Active" }
-];
+const registeredUsers = [];  // Will be populated from backend
+let users = [];  // Will be populated from backend
 
 // ============ APPLICATION DATA ============
 const fields = [
@@ -69,9 +101,9 @@ const trendData = [
 ];
 
 const users = [
-  { userId: "U-201", name: "Dr. Minh Nguyen", email: "minh.nguyen@scipub.test", role: "Researcher", status: "Active" },
-  { userId: "U-301", name: "Linh Tran", email: "linh.tran@scipub.test", role: "Editor", status: "Assigned" },
-  { userId: "U-401", name: "Bao Pham", email: "bao.pham@scipub.test", role: "Admin", status: "Active" }
+  { userId: "U-201", name: "Dr. Minh Nguyen", email: "minh.nguyen@scipub.test", role: "User", status: "Active" },
+  { userId: "U-301", name: "Linh Tran", email: "linh.tran@scipub.test", role: "User", status: "Active" },
+  { userId: "U-401", name: "Bao Pham", email: "bao.pham@scipub.test", role: "User", status: "Active" }
 ];
 
 let savedSearches = [
@@ -81,7 +113,7 @@ let savedSearches = [
 ];
 
 let selectedJournalId = journals[0].journalId;
-let activeRole = "researcher";
+let activeRole = "user";
 
 // ============ AUTH DOM ELEMENTS ============
 const authContainer = document.querySelector("#authContainer");
@@ -95,10 +127,10 @@ const forgotPasswordFormElement = document.querySelector("#forgotPasswordFormEle
 const loginEmailInput = document.querySelector("#loginEmail");
 const loginPasswordInput = document.querySelector("#loginPassword");
 const registerNameInput = document.querySelector("#registerName");
+const registerUsernameInput = document.querySelector("#registerUsername");
 const registerEmailInput = document.querySelector("#registerEmail");
 const registerPasswordInput = document.querySelector("#registerPassword");
 const registerConfirmPasswordInput = document.querySelector("#registerConfirmPassword");
-const registerRoleSelect = document.querySelector("#registerRole");
 const resetEmailInput = document.querySelector("#resetEmail");
 const registerLink = document.querySelector("#registerLink");
 const forgotPasswordLink = document.querySelector("#forgotPasswordLink");
@@ -108,8 +140,7 @@ const backToLoginLink2 = document.querySelector("#backToLoginLink2");
 const pageTitle = document.querySelector("#pageTitle");
 const activeRoleLabel = document.querySelector("#activeRole");
 const views = [...document.querySelectorAll(".view")];
-const navItems = [...document.querySelectorAll(".nav-item")];
-const roleButtons = [...document.querySelectorAll(".role-button")];
+const navItems = [...document.querySelectorAll("[data-view]")];
 const jumpButtons = [...document.querySelectorAll("[data-view-jump]")];
 const metricSelect = document.querySelector("#metricSelect");
 const trendChart = document.querySelector("#trendChart");
@@ -130,7 +161,53 @@ const saveSearchButton = document.querySelector("#saveSearchButton");
 const editorJournalList = document.querySelector("#editorJournalList");
 const assignJournalButton = document.querySelector("#assignJournalButton");
 const userTable = document.querySelector("#userTable");
+
+// Safely get old userTable if exists, fallback to null
+const legacyUserTable = document.querySelector("#userTable");
 const addUserButton = document.querySelector("#addUserButton");
+
+// Override renderUsers to check if element exists
+const originalRenderUsers = function() {
+  if (!legacyUserTable) return; // Skip if table doesn't exist in current view
+  legacyUserTable.innerHTML = users
+    .map((user) => {
+      return `
+        <tr>
+          <td>${user.userId}</td>
+          <td>${user.name}</td>
+          <td>${user.email}</td>
+          <td>${user.role}</td>
+          <td>${user.status}</td>
+        </tr>
+      `;
+    })
+    .join("");
+};
+
+// ============ ADMIN DASHBOARD DOM ELEMENTS ============
+const adminUserTable = document.querySelector("#adminUserTable");
+const userModal = document.querySelector("#userModal");
+const userFormElement = document.querySelector("#userFormElement");
+const userModalTitle = document.querySelector("#userModalTitle");
+const closeUserModal = document.querySelector("#closeUserModal");
+const cancelUserForm = document.querySelector("#cancelUserForm");
+const userFormName = document.querySelector("#userFormName");
+const userFormEmail = document.querySelector("#userFormEmail");
+const userFormRole = document.querySelector("#userFormRole");
+const userFormStatus = document.querySelector("#userFormStatus");
+const userFormPassword = document.querySelector("#userFormPassword");
+const adminUserSearch = document.querySelector("#adminUserSearch");
+const refreshStatsButton = document.querySelector("#refreshStatsButton");
+const activityLog = document.querySelector("#activityLog");
+const totalUsersMetric = document.querySelector("#totalUsersMetric");
+const researcherCountMetric = document.querySelector("#researcherCountMetric");
+const editorCountMetric = document.querySelector("#editorCountMetric");
+
+let editingUserId = null;
+let activityLogs = [
+  { id: 1, event: "System initialized", user: "System", timestamp: new Date(Date.now() - 60000) },
+  { id: 2, event: "Admin panel accessed", user: "Administrator", timestamp: new Date(Date.now() - 30000) }
+];
 
 function getField(fieldId) {
   return fields.find((field) => field.id === fieldId);
@@ -152,12 +229,20 @@ function setView(viewName) {
 function applyRole(role) {
   activeRole = role;
   activeRoleLabel.textContent = role.charAt(0).toUpperCase() + role.slice(1);
-  roleButtons.forEach((button) => button.classList.toggle("active", button.dataset.role === role));
 
   navItems.forEach((item) => {
-    const allowed = item.dataset.roles.split(" ").includes(role);
+    const rolesAttr = item.dataset.roles;
+    if (!rolesAttr) return; // Skip if no data-roles attribute
+    const allowed = rolesAttr.split(" ").includes(role);
     item.classList.toggle("is-hidden", !allowed);
   });
+
+  // Render admin dashboard when switching to admin role
+  if (role === "admin") {
+    updateAdminStats();
+    renderAdminUserTable();
+    renderActivityLog();
+  }
 
   const activeItem = document.querySelector(".nav-item.active:not(.is-hidden)");
   if (!activeItem) {
@@ -347,7 +432,8 @@ function renderEditorJournals() {
 }
 
 function renderUsers() {
-  userTable.innerHTML = users
+  if (!legacyUserTable) return; // Skip if table doesn't exist
+  legacyUserTable.innerHTML = users
     .map((user) => {
       return `
         <tr>
@@ -357,6 +443,218 @@ function renderUsers() {
           <td>${user.role}</td>
           <td>${user.status}</td>
         </tr>
+      `;
+    })
+    .join("");
+}
+
+// ============ ADMIN DASHBOARD FUNCTIONS ============
+function updateAdminStats() {
+  const totalUsers = users.length;
+  const activeUsers = users.filter((u) => u.status === "Active").length;
+  const adminUsers = users.filter((u) => u.role === "Admin").length;
+
+  totalUsersMetric.textContent = totalUsers;
+  researcherCountMetric.textContent = activeUsers;
+  editorCountMetric.textContent = adminUsers;
+}
+
+function renderAdminUserTable(searchTerm = "") {
+  let filteredUsers = users;
+
+  if (searchTerm.trim()) {
+    filteredUsers = users.filter(
+      (user) =>
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  adminUserTable.innerHTML = filteredUsers
+    .map((user) => {
+      const statusClass = `status-${(user.status || "Active").toLowerCase()}`;
+      const userId = user.id || user.userId;
+      return `
+        <tr>
+          <td>${userId}</td>
+          <td>${user.name}</td>
+          <td>${user.email}</td>
+          <td>${user.role || "User"}</td>
+          <td><span class="status-badge ${statusClass}">${user.status || "Active"}</span></td>
+          <td>
+            <div class="admin-user-actions">
+              <button type="button" class="btn-edit" data-action="edit" data-user-id="${userId}">Edit</button>
+              <button type="button" class="btn-toggle" data-action="toggle" data-user-id="${userId}">
+                ${(user.status || "Active") === "Active" ? "Deactivate" : "Activate"}
+              </button>
+              <button type="button" class="btn-delete" data-action="delete" data-user-id="${userId}">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  // Add event listeners to action buttons
+  adminUserTable.querySelectorAll("[data-action]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const action = btn.dataset.action;
+      const userId = btn.dataset.userId;
+      handleUserAction(action, userId);
+    });
+  });
+}
+
+async function handleUserAction(action, userId) {
+  const user = users.find((u) => u.id === userId || u.userId === userId);
+  if (!user) return;
+
+  const actualUserId = user.id || user.userId;
+
+  if (action === "edit") {
+    editingUserId = actualUserId;
+    userModalTitle.textContent = "Edit User";
+    userFormName.value = user.name;
+    userFormEmail.value = user.email;
+    userFormRole.value = user.role || "User";
+    userFormStatus.value = user.status || "Active";
+    userFormPassword.value = "";
+    document.querySelector("#passwordHint").textContent = "Leave empty to keep existing password";
+    userModal.classList.add("active");
+  } else if (action === "toggle") {
+    try {
+      const newStatus = user.status === "Active" ? "Inactive" : "Active";
+      await apiCall(`/admin/users/${actualUserId}`, "PUT", {
+        status: newStatus
+      });
+      user.status = newStatus;
+      addActivityLog(`User ${newStatus === "Active" ? "activated" : "deactivated"}`, user.name);
+      renderAdminUserTable(adminUserSearch.value);
+      showNotification(`User ${newStatus === "Active" ? "activated" : "deactivated"}!`);
+    } catch (error) {
+      showNotification(error.message || "Failed to update user status!", "error");
+    }
+  } else if (action === "delete") {
+    if (confirm(`Are you sure you want to delete ${user.name}?`)) {
+      try {
+        await apiCall(`/admin/users/${actualUserId}`, "DELETE");
+        const index = users.findIndex((u) => u.id === actualUserId || u.userId === actualUserId);
+        if (index > -1) {
+          users.splice(index, 1);
+        }
+        addActivityLog("User deleted", user.name);
+        renderAdminUserTable(adminUserSearch.value);
+        showNotification(`User ${user.name} deleted successfully!`);
+      } catch (error) {
+        showNotification(error.message || "Failed to delete user!", "error");
+      }
+    }
+  }
+}
+
+function openUserModal() {
+  editingUserId = null;
+  userModalTitle.textContent = "Add New User";
+  userFormElement.reset();
+  userFormPassword.value = "";
+  document.querySelector("#passwordHint").textContent = "Required for new users";
+  userModal.classList.add("active");
+}
+
+function closeUserModalFunction() {
+  userModal.classList.remove("active");
+  editingUserId = null;
+  userFormElement.reset();
+}
+
+async function saveUser(event) {
+  event.preventDefault();
+  const name = userFormName.value.trim();
+  const email = userFormEmail.value.trim();
+  const role = userFormRole.value;
+  const status = userFormStatus.value;
+  const password = userFormPassword.value;
+
+  if (!name || !email) {
+    showNotification("Name and email are required!", "error");
+    return;
+  }
+
+  try {
+    if (editingUserId) {
+      // Edit existing user
+      const updateData = { name, email, role, status };
+      if (password) updateData.password = password;
+      
+      await apiCall(`/admin/users/${editingUserId}`, "PUT", updateData);
+      
+      const user = users.find((u) => u.id === editingUserId || u.userId === editingUserId);
+      if (user) {
+        user.name = name;
+        user.email = email;
+        user.role = role;
+        user.status = status;
+      }
+      addActivityLog("User updated", name);
+      showNotification("User updated successfully!");
+    } else {
+      // Add new user
+      if (!password) {
+        showNotification("Password is required for new users!", "error");
+        return;
+      }
+
+      const response = await apiCall("/admin/users", "POST", {
+        name,
+        email,
+        username: email.split("@")[0],  // Generate username from email
+        password,
+        role,
+        status
+      });
+
+      if (response.user) {
+        users.push(response.user);
+        addActivityLog("New user created", name);
+        showNotification("User created successfully!");
+      }
+    }
+
+    closeUserModalFunction();
+    renderAdminUserTable();
+    updateAdminStats();
+  } catch (error) {
+    showNotification(error.message || "Failed to save user!", "error");
+  }
+}
+
+function addActivityLog(event, user) {
+  const log = {
+    id: activityLogs.length + 1,
+    event: event,
+    user: user,
+    timestamp: new Date()
+  };
+  activityLogs.unshift(log);
+  if (activityLogs.length > 20) activityLogs.pop();
+  renderActivityLog();
+}
+
+function renderActivityLog() {
+  activityLog.innerHTML = activityLogs
+    .slice(0, 10)
+    .map((log) => {
+      const time = log.timestamp.toLocaleTimeString();
+      const date = log.timestamp.toLocaleDateString();
+      return `
+        <div class="activity-item">
+          <div class="activity-icon">📋</div>
+          <div class="activity-content">
+            <strong>${log.event}</strong>
+            <small>${log.user}</small>
+          </div>
+          <div class="activity-time">${date} ${time}</div>
+        </div>
       `;
     })
     .join("");
@@ -387,56 +685,111 @@ function showAuthContainer() {
   appShell.style.display = "none";
 }
 
-function loginUser(email, password) {
-  const user = registeredUsers.find((u) => u.email === email && u.password === password);
-  if (user) {
-    currentUser = { ...user };
-    activeRole = user.role.toLowerCase();
-    showAppShell();
-    renderFieldOptions();
-    renderChart();
-    renderFields();
-    renderJournals();
-    renderTrendTable();
-    renderSavedSearches();
-    renderEditorJournals();
-    renderUsers();
-    applyRole(activeRole);
-    activeRoleLabel.textContent = user.role;
-    document.querySelector(".user-chip strong").textContent = user.name.split(" ")[0];
-    showNotification("Login successful!");
-    return true;
+async function loginUser(loginInput, password) {
+  try {
+    const response = await apiCall("/auth/login", "POST", {
+      loginInput: loginInput,
+      password: password
+    });
+
+    if (response.token) {
+      // Store token
+      authToken = response.token;
+      localStorage.setItem("authToken", authToken);
+
+      // Store user data
+      const user = response.user;
+      currentUser = user;
+      activeRole = user.role.toLowerCase();
+
+      // Render UI
+      showAppShell();
+      renderFieldOptions();
+      renderChart();
+      renderFields();
+      renderJournals();
+      renderTrendTable();
+      renderSavedSearches();
+      renderEditorJournals();
+
+      // Load users for admin
+      if (activeRole === "admin") {
+        await loadUsers();
+        updateAdminStats();
+        renderAdminUserTable();
+        renderActivityLog();
+        addActivityLog("Admin login", user.name);
+        setView("admin");
+        showDialog(
+          "Welcome Admin",
+          `Welcome back, ${user.name}! You are now logged in to the Admin Dashboard.`,
+          "success"
+        );
+      } else {
+        showDialog(
+          "Login Successful",
+          `Welcome, ${user.name.split(" ")[0]}! You have successfully logged in.`,
+          "success"
+        );
+      }
+
+      applyRole(activeRole);
+      activeRoleLabel.textContent = user.role === "Admin" ? "Admin" : "User";
+      document.querySelector(".user-chip strong").textContent = user.name.split(" ")[0];
+      showNotification("Login successful!");
+      return true;
+    }
+  } catch (error) {
+    showNotification(error.message || "Invalid email/username or password!", "error");
+    return false;
   }
   return false;
 }
 
-function registerUser(name, email, password, confirmPassword, role) {
-  // Validation
+async function registerUser(name, email, username, password, confirmPassword) {
+  // Client-side validation
   if (password !== confirmPassword) {
     showNotification("Passwords do not match!", "error");
     return false;
   }
 
-  if (registeredUsers.some((u) => u.email === email)) {
-    showNotification("Email already registered!", "error");
+  if (password.length < 8) {
+    showNotification("Password must be at least 8 characters!", "error");
     return false;
   }
 
-  // Create new user
-  const newUser = {
-    userId: `U-${400 + registeredUsers.length}`,
-    name: name,
-    email: email,
-    password: password,
-    role: role.charAt(0).toUpperCase() + role.slice(1),
-    status: "Active"
-  };
+  try {
+    const response = await apiCall("/auth/register", "POST", {
+      name: name,
+      email: email,
+      username: username,
+      password: password
+    });
 
-  registeredUsers.push(newUser);
-  users.push(newUser);
-  showNotification("Account created successfully! Please login.");
-  showAuthForm("login");
-  return true;
+    if (response.user) {
+      showDialog(
+        "Account Created",
+        `Welcome, ${name}! Your account has been created successfully. Please log in with your credentials.`,
+        "success"
+      );
+      showNotification("Account created successfully! Please login.");
+      showAuthForm("login");
+      return true;
+    }
+  } catch (error) {
+    showNotification(error.message || "Registration failed!", "error");
+    return false;
+  }
+}
+
+async function loadUsers() {
+  try {
+    const response = await apiCall("/admin/users", "GET");
+    users = response.users || response.data || [];
+    renderAdminUserTable();
+  } catch (error) {
+    console.error("Failed to load users:", error);
+  }
 }
 
 function resetPassword(email) {
@@ -454,7 +807,7 @@ function resetPassword(email) {
 
 function logoutUser() {
   currentUser = null;
-  activeRole = "researcher";
+  activeRole = "user";
   loginFormElement.reset();
   registerFormElement.reset();
   forgotPasswordFormElement.reset();
@@ -478,6 +831,51 @@ function showNotification(message, type = "success") {
   }, 3000);
 }
 
+function showDialog(title, message, type = "info") {
+  // Create dialog overlay
+  const overlay = document.createElement("div");
+  overlay.className = "dialog-overlay";
+  
+  // Create dialog container
+  const dialog = document.createElement("div");
+  dialog.className = `dialog dialog-${type}`;
+  
+  // Add dialog content
+  dialog.innerHTML = `
+    <div class="dialog-header">
+      <h2>${title}</h2>
+      <button class="dialog-close" aria-label="Close dialog">&times;</button>
+    </div>
+    <div class="dialog-content">
+      <p>${message}</p>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn-primary dialog-ok">OK</button>
+    </div>
+  `;
+  
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  
+  // Handle close button
+  const closeBtn = dialog.querySelector(".dialog-close");
+  const okBtn = dialog.querySelector(".dialog-ok");
+  
+  const closeDialog = () => {
+    overlay.classList.add("fade-out");
+    setTimeout(() => overlay.remove(), 300);
+  };
+  
+  closeBtn.addEventListener("click", closeDialog);
+  okBtn.addEventListener("click", closeDialog);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeDialog();
+  });
+  
+  // Show dialog with animation
+  setTimeout(() => overlay.classList.add("show"), 10);
+}
+
 navItems.forEach((item) => {
   item.addEventListener("click", () => setView(item.dataset.view));
 });
@@ -498,12 +896,12 @@ loginFormElement.addEventListener("submit", (e) => {
 registerFormElement.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = registerNameInput.value.trim();
+  const username = registerUsernameInput.value.trim();
   const email = registerEmailInput.value.trim();
   const password = registerPasswordInput.value;
   const confirmPassword = registerConfirmPasswordInput.value;
-  const role = registerRoleSelect.value;
 
-  if (registerUser(name, email, password, confirmPassword, role)) {
+  if (registerUser(name, email, username, password, confirmPassword)) {
     registerFormElement.reset();
   }
 });
@@ -532,10 +930,6 @@ logoutBtn.addEventListener("click", () => {
 
 jumpButtons.forEach((button) => {
   button.addEventListener("click", () => setView(button.dataset.viewJump));
-});
-
-roleButtons.forEach((button) => {
-  button.addEventListener("click", () => applyRole(button.dataset.role));
 });
 
 metricSelect.addEventListener("change", renderChart);
@@ -578,15 +972,38 @@ assignJournalButton.addEventListener("click", () => {
   setView("search");
 });
 
+// ============ ADMIN DASHBOARD EVENT LISTENERS ============
 addUserButton.addEventListener("click", () => {
-  users.push({
-    userId: `U-${400 + users.length + 1}`,
-    name: "New System User",
-    email: `user${users.length + 1}@scipub.test`,
-    role: "Researcher",
-    status: "Pending"
-  });
-  renderUsers();
+  if (activeRole === "admin") {
+    openUserModal();
+  }
+});
+
+closeUserModal.addEventListener("click", () => {
+  closeUserModalFunction();
+});
+
+cancelUserForm.addEventListener("click", () => {
+  closeUserModalFunction();
+});
+
+userFormElement.addEventListener("submit", saveUser);
+
+adminUserSearch.addEventListener("input", (e) => {
+  renderAdminUserTable(e.target.value);
+});
+
+refreshStatsButton.addEventListener("click", () => {
+  updateAdminStats();
+  renderAdminUserTable(adminUserSearch.value);
+  showNotification("Stats refreshed!");
+});
+
+// Close modal when clicking outside
+userModal.addEventListener("click", (e) => {
+  if (e.target === userModal) {
+    closeUserModalFunction();
+  }
 });
 
 renderFieldOptions();

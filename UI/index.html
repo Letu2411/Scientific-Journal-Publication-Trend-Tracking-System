@@ -20,8 +20,8 @@
 
           <form id="loginFormElement" class="form-group">
             <div class="form-field">
-              <label for="loginEmail">Email Address</label>
-              <input type="email" id="loginEmail" placeholder="your.email@example.com" required />
+              <label for="loginEmail">Email or Username</label>
+              <input type="text" id="loginEmail" placeholder="your.email@example.com or username" required />
             </div>
 
             <div class="form-field">
@@ -62,6 +62,11 @@
             </div>
 
             <div class="form-field">
+              <label for="registerUsername">Username</label>
+              <input type="text" id="registerUsername" placeholder="Choose a username (letters, numbers, underscore)" required />
+            </div>
+
+            <div class="form-field">
               <label for="registerEmail">Email Address</label>
               <input type="email" id="registerEmail" placeholder="your.email@example.com" required />
             </div>
@@ -74,15 +79,6 @@
             <div class="form-field">
               <label for="registerConfirmPassword">Confirm Password</label>
               <input type="password" id="registerConfirmPassword" placeholder="Confirm your password" minlength="8" required />
-            </div>
-
-            <div class="form-field">
-              <label for="registerRole">Select Role</label>
-              <select id="registerRole" required>
-                <option value="">-- Choose your role --</option>
-                <option value="researcher">Researcher</option>
-                <option value="editor">Editor</option>
-              </select>
             </div>
 
             <div class="form-checkbox">
@@ -137,32 +133,22 @@
           </span>
         </a>
 
-        <div class="role-switcher" aria-label="Role selector">
-          <button class="role-button active" type="button" data-role="researcher">Researcher</button>
-          <button class="role-button" type="button" data-role="editor">Editor</button>
-          <button class="role-button" type="button" data-role="admin">Admin</button>
-        </div>
-
         <nav class="nav-list" aria-label="Main">
-          <button class="nav-item active" type="button" data-view="dashboard" data-roles="researcher admin editor">
+          <button class="nav-item active" type="button" data-view="dashboard" data-roles="user admin">
             <span class="nav-icon" aria-hidden="true">D</span>
             View Dashboard
           </button>
-          <button class="nav-item" type="button" data-view="search" data-roles="researcher editor">
+          <button class="nav-item" type="button" data-view="search" data-roles="user admin">
             <span class="nav-icon" aria-hidden="true">S</span>
             Search Journals
           </button>
-          <button class="nav-item" type="button" data-view="trends" data-roles="researcher editor">
+          <button class="nav-item" type="button" data-view="trends" data-roles="user admin">
             <span class="nav-icon" aria-hidden="true">T</span>
             Analyze Trends
           </button>
-          <button class="nav-item" type="button" data-view="saved" data-roles="researcher">
+          <button class="nav-item" type="button" data-view="saved" data-roles="user">
             <span class="nav-icon" aria-hidden="true">Q</span>
             Saved Searches
-          </button>
-          <button class="nav-item" type="button" data-view="editor" data-roles="editor admin">
-            <span class="nav-icon" aria-hidden="true">J</span>
-            Manage Journals
           </button>
           <button class="nav-item" type="button" data-view="admin" data-roles="admin">
             <span class="nav-icon" aria-hidden="true">A</span>
@@ -356,16 +342,57 @@
           </section>
         </section>
 
-        <section class="view" id="adminView" data-title="Admin user management">
+        <section class="view" id="adminView" data-title="Admin Dashboard & User Management">
+          <!-- Admin Dashboard Header -->
+          <section class="hero-band admin-hero">
+            <div>
+              <p class="eyebrow">Administration Panel</p>
+              <h2>System Management & User Control Center</h2>
+            </div>
+            <div class="hero-actions">
+              <button class="primary-action" type="button" id="addUserButton">+ Add New User</button>
+              <button class="secondary-action" type="button" id="refreshStatsButton">Refresh Stats</button>
+            </div>
+          </section>
+
+          <!-- Admin Statistics Cards -->
+          <div class="metric-grid admin-metrics">
+            <article class="metric-card">
+              <span>Total Users</span>
+              <strong id="totalUsersMetric">0</strong>
+              <small>Total registered</small>
+            </article>
+            <article class="metric-card">
+              <span>Active Users</span>
+              <strong id="researcherCountMetric">0</strong>
+              <small>Currently active</small>
+            </article>
+            <article class="metric-card">
+              <span>Administrators</span>
+              <strong id="editorCountMetric">0</strong>
+              <small>Admin accounts</small>
+            </article>
+            <article class="metric-card">
+              <span>System Status</span>
+              <strong id="systemStatusMetric">Healthy</strong>
+              <small>All systems operational</small>
+            </article>
+          </div>
+
+          <!-- User Management Section -->
           <section class="panel">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">Admin</p>
-                <h2>Manage users</h2>
+                <p class="eyebrow">User Management</p>
+                <h2>All registered users</h2>
               </div>
-              <button class="primary-action" type="button" id="addUserButton">Add User</button>
+              <div class="search-box">
+                <span aria-hidden="true">🔍</span>
+                <input type="search" id="adminUserSearch" placeholder="Search by name or email" />
+              </div>
             </div>
-            <div class="user-table-wrap">
+
+            <div class="admin-user-table">
               <table>
                 <thead>
                   <tr>
@@ -374,11 +401,77 @@
                     <th>Email</th>
                     <th>Role</th>
                     <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody id="userTable"></tbody>
+                <tbody id="adminUserTable"></tbody>
               </table>
             </div>
+          </section>
+
+          <!-- User Details Modal -->
+          <div class="modal" id="userModal">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h2 id="userModalTitle">Add New User</h2>
+                <button type="button" class="modal-close" id="closeUserModal">&times;</button>
+              </div>
+
+              <form id="userFormElement" class="form-group">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="userFormName">Full Name</label>
+                    <input type="text" id="userFormName" placeholder="User full name" required />
+                  </div>
+                  <div class="form-field">
+                    <label for="userFormEmail">Email Address</label>
+                    <input type="email" id="userFormEmail" placeholder="user@example.com" required />
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="userFormRole">Role</label>
+                    <select id="userFormRole" required>
+                      <option value="User">User</option>
+                      <option value="Admin">Admin</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label for="userFormStatus">Status</label>
+                    <select id="userFormStatus" required>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Assigned">Assigned</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-field">
+                  <label for="userFormPassword">Password</label>
+                  <input type="password" id="userFormPassword" placeholder="Enter password" minlength="6" />
+                  <small id="passwordHint">Leave empty to keep existing password</small>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn-primary">Save User</button>
+                  <button type="button" class="btn-secondary" id="cancelUserForm">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- System Activity Log -->
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Recent Activity</p>
+                <h2>System log & events</h2>
+              </div>
+            </div>
+
+            <div class="activity-log" id="activityLog"></div>
           </section>
         </section>
 
