@@ -134,21 +134,25 @@
         </a>
 
         <nav class="nav-list" aria-label="Main">
-          <button class="nav-item active" type="button" data-view="dashboard" data-roles="user admin">
+          <button class="nav-item active" type="button" data-view="dashboard" data-roles="user researcher admin">
             <span class="nav-icon" aria-hidden="true">D</span>
             View Dashboard
           </button>
-          <button class="nav-item" type="button" data-view="search" data-roles="user admin">
+          <button class="nav-item" type="button" data-view="search" data-roles="user researcher admin">
             <span class="nav-icon" aria-hidden="true">S</span>
             Search Journals
           </button>
-          <button class="nav-item" type="button" data-view="trends" data-roles="user admin">
+          <button class="nav-item" type="button" data-view="trends" data-roles="user researcher admin">
             <span class="nav-icon" aria-hidden="true">T</span>
             Analyze Trends
           </button>
-          <button class="nav-item" type="button" data-view="saved" data-roles="user">
+          <button class="nav-item" type="button" data-view="saved" data-roles="researcher">
             <span class="nav-icon" aria-hidden="true">Q</span>
             Saved Searches
+          </button>
+          <button class="nav-item" type="button" data-view="posts" data-roles="researcher admin">
+            <span class="nav-icon" aria-hidden="true">P</span>
+            Submit Articles
           </button>
           <button class="nav-item" type="button" data-view="admin" data-roles="admin">
             <span class="nav-icon" aria-hidden="true">A</span>
@@ -175,17 +179,28 @@
           </div>
           <div class="user-section">
             <div class="user-chip" aria-label="Current user">
-              <span id="activeRole">Researcher</span>
-              <strong>User</strong>
+              <span id="activeRole">User</span>
+              <strong data-i18n="userName">User</strong>
             </div>
-            <button type="button" class="btn-logout" id="logoutBtn" title="Logout">Logout</button>
+
+            <div class="top-actions">
+              <button type="button" class="btn-theme" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">Light</button>
+              <label class="lang-select" aria-label="Language">
+                <select id="languageSelect" aria-label="Language">
+                  <option value="en" selected>EN</option>
+                  <option value="vi">VI</option>
+                </select>
+              </label>
+              <button type="button" class="btn-logout" id="logoutBtn" title="Logout" data-i18n="logoutBtn">Logout</button>
+            </div>
           </div>
+
         </header>
 
         <section class="hero-band">
           <div>
             <p class="eyebrow">UML-driven interface</p>
-            <h2>Track journals, articles, fields, saved searches, and publication trends in one workflow.</h2>
+            <h2>Track journals, articles, fields, researcher approvals, article submissions, and publication trends in one workflow.</h2>
           </div>
           <div class="hero-actions">
             <button class="primary-action" type="button" data-view-jump="search">Search Journals</button>
@@ -216,6 +231,15 @@
               <small>Researcher-owned queries</small>
             </article>
           </div>
+
+          <section class="panel access-panel" id="roleAccessPanel">
+            <div>
+              <p class="eyebrow">Account Access</p>
+              <h2 id="accessTitle">Reader account</h2>
+              <p id="accessDescription">You can read dashboards, inspect journal details, and search publication data.</p>
+            </div>
+            <button class="primary-action" type="button" id="requestResearcherButton">Request Researcher Access</button>
+          </section>
 
           <div class="dashboard-grid">
             <article class="panel wide">
@@ -329,6 +353,50 @@
           </section>
         </section>
 
+        <section class="view" id="postsView" data-title="Researcher article submission">
+          <div class="split-layout">
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Researcher.articleSubmissions</p>
+                  <h2>Submit an article</h2>
+                </div>
+              </div>
+              <form id="postFormElement" class="form-group">
+                <div class="form-field">
+                  <label for="postTitleInput">Article title</label>
+                  <input type="text" id="postTitleInput" placeholder="Enter article title" required />
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="postJournalSelect">Journal</label>
+                    <select id="postJournalSelect" required></select>
+                  </div>
+                  <div class="form-field">
+                    <label for="postFieldSelect">Field</label>
+                    <select id="postFieldSelect" required></select>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label for="postAbstractInput">Abstract</label>
+                  <textarea id="postAbstractInput" placeholder="Short abstract for admin review" required></textarea>
+                </div>
+                <button class="primary-action full" type="submit">Submit for Review</button>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">My Articles</p>
+                  <h2>Submission status</h2>
+                </div>
+              </div>
+              <div class="post-list" id="researcherPostList"></div>
+            </section>
+          </div>
+        </section>
+
         <section class="view" id="editorView" data-title="Editor journal management">
           <section class="panel">
             <div class="panel-heading">
@@ -363,19 +431,19 @@
               <small>Total registered</small>
             </article>
             <article class="metric-card">
-              <span>Active Users</span>
+              <span>Pending Researcher</span>
               <strong id="researcherCountMetric">0</strong>
-              <small>Currently active</small>
+              <small>Waiting for approval</small>
             </article>
             <article class="metric-card">
-              <span>Administrators</span>
+              <span>Researchers</span>
               <strong id="editorCountMetric">0</strong>
-              <small>Admin accounts</small>
+              <small>Approved posting access</small>
             </article>
             <article class="metric-card">
-              <span>System Status</span>
-              <strong id="systemStatusMetric">Healthy</strong>
-              <small>All systems operational</small>
+              <span>Pending Articles</span>
+              <strong id="pendingPostsMetric">0</strong>
+              <small>Awaiting admin review</small>
             </article>
           </div>
 
@@ -400,6 +468,7 @@
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Researcher Access</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -434,6 +503,7 @@
                     <label for="userFormRole">Role</label>
                     <select id="userFormRole" required>
                       <option value="User">User</option>
+                      <option value="Researcher">Researcher</option>
                       <option value="Admin">Admin</option>
                     </select>
                   </div>
@@ -461,6 +531,31 @@
               </form>
             </div>
           </div>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Article Management</p>
+                <h2>Researcher submissions</h2>
+              </div>
+            </div>
+
+            <div class="admin-user-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Article ID</th>
+                    <th>Title</th>
+                    <th>Researcher</th>
+                    <th>Journal</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminPostTable"></tbody>
+              </table>
+            </div>
+          </section>
 
           <!-- System Activity Log -->
           <section class="panel">
