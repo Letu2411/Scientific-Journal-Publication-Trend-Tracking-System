@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 
 import authRoutes from "./routes/auth.routes";
 import adminRoutes from "./routes/admin.routes";
+import articleRoutes from "./routes/article.routes";
+import userRoutes from "./routes/user.routes";
+import settingRoutes from "./routes/setting.routes";
 
 dotenv.config();
 
@@ -20,6 +23,9 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/articles", articleRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/settings", settingRoutes);
 
 const PORT = process.env.PORT || 8080;
 

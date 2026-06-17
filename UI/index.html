@@ -7,7 +7,123 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell">
+    <!-- Authentication Section -->
+    <div class="auth-container" id="authContainer">
+      <!-- Login Form -->
+      <div class="auth-form active" id="loginForm">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-logo">ST</div>
+            <h1>SciPub Trends</h1>
+            <p>Publication Trend Tracking System</p>
+          </div>
+
+          <form id="loginFormElement" class="form-group">
+            <div class="form-field">
+              <label for="loginEmail">Email or Username</label>
+              <input type="text" id="loginEmail" placeholder="your.email@example.com or username" required />
+            </div>
+
+            <div class="form-field">
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" placeholder="Enter your password" required />
+            </div>
+
+            <div class="form-checkbox">
+              <input type="checkbox" id="rememberMe" />
+              <label for="rememberMe">Remember me</label>
+            </div>
+
+            <button type="submit" class="btn-primary full">Sign In</button>
+          </form>
+
+          <div class="form-divider">Or</div>
+
+          <div class="auth-links">
+            <button type="button" class="btn-link" id="forgotPasswordLink">Forgot your password?</button>
+            <button type="button" class="btn-link" id="registerLink">Create new account</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Register Form -->
+      <div class="auth-form" id="registerForm">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-logo">ST</div>
+            <h1>Create Account</h1>
+            <p>Join SciPub Trends Community</p>
+          </div>
+
+          <form id="registerFormElement" class="form-group">
+            <div class="form-field">
+              <label for="registerName">Full Name</label>
+              <input type="text" id="registerName" placeholder="Your full name" required />
+            </div>
+
+            <div class="form-field">
+              <label for="registerUsername">Username</label>
+              <input type="text" id="registerUsername" placeholder="Choose a username (letters, numbers, underscore)" required />
+            </div>
+
+            <div class="form-field">
+              <label for="registerEmail">Email Address</label>
+              <input type="email" id="registerEmail" placeholder="your.email@example.com" required />
+            </div>
+
+            <div class="form-field">
+              <label for="registerPassword">Password</label>
+              <input type="password" id="registerPassword" placeholder="Minimum 8 characters" minlength="8" required />
+            </div>
+
+            <div class="form-field">
+              <label for="registerConfirmPassword">Confirm Password</label>
+              <input type="password" id="registerConfirmPassword" placeholder="Confirm your password" minlength="8" required />
+            </div>
+
+            <div class="form-checkbox">
+              <input type="checkbox" id="agreeTerms" required />
+              <label for="agreeTerms">I agree to Terms of Service and Privacy Policy</label>
+            </div>
+
+            <button type="submit" class="btn-primary full">Create Account</button>
+          </form>
+
+          <div class="auth-links">
+            <button type="button" class="btn-link" id="backToLoginLink">Back to login</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Forgot Password Form -->
+      <div class="auth-form" id="forgotPasswordForm">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-logo">ST</div>
+            <h1>Reset Password</h1>
+            <p>Enter your email to receive reset instructions</p>
+          </div>
+
+          <form id="forgotPasswordFormElement" class="form-group">
+            <div class="form-field">
+              <label for="resetEmail">Email Address</label>
+              <input type="email" id="resetEmail" placeholder="your.email@example.com" required />
+            </div>
+
+            <p class="form-hint">We'll send you an email with instructions to reset your password within a few minutes.</p>
+
+            <button type="submit" class="btn-primary full">Send Reset Link</button>
+          </form>
+
+          <div class="auth-links">
+            <button type="button" class="btn-link" id="backToLoginLink2">Back to login</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App Section (Hidden initially) -->
+    <div class="app-shell" id="appShell" style="display: none;">
       <aside class="sidebar" aria-label="Application navigation">
         <a class="brand" href="#" data-view="dashboard" aria-label="SciPub Trends home">
           <span class="brand-mark">ST</span>
@@ -17,22 +133,16 @@
           </span>
         </a>
 
-        <div class="role-switcher" aria-label="Role selector">
-          <button class="role-button active" type="button" data-role="researcher">Researcher</button>
-          <button class="role-button" type="button" data-role="editor">Editor</button>
-          <button class="role-button" type="button" data-role="admin">Admin</button>
-        </div>
-
         <nav class="nav-list" aria-label="Main">
-          <button class="nav-item active" type="button" data-view="dashboard" data-roles="researcher admin editor">
+          <button class="nav-item active" type="button" data-view="dashboard" data-roles="user researcher admin">
             <span class="nav-icon" aria-hidden="true">D</span>
             View Dashboard
           </button>
-          <button class="nav-item" type="button" data-view="search" data-roles="researcher editor">
+          <button class="nav-item" type="button" data-view="search" data-roles="user researcher admin">
             <span class="nav-icon" aria-hidden="true">S</span>
             Search Journals
           </button>
-          <button class="nav-item" type="button" data-view="trends" data-roles="researcher editor">
+          <button class="nav-item" type="button" data-view="trends" data-roles="user researcher admin">
             <span class="nav-icon" aria-hidden="true">T</span>
             Analyze Trends
           </button>
@@ -40,9 +150,9 @@
             <span class="nav-icon" aria-hidden="true">Q</span>
             Saved Searches
           </button>
-          <button class="nav-item" type="button" data-view="editor" data-roles="editor admin">
-            <span class="nav-icon" aria-hidden="true">J</span>
-            Manage Journals
+          <button class="nav-item" type="button" data-view="posts" data-roles="researcher admin">
+            <span class="nav-icon" aria-hidden="true">P</span>
+            Submit Articles
           </button>
           <button class="nav-item" type="button" data-view="admin" data-roles="admin">
             <span class="nav-icon" aria-hidden="true">A</span>
@@ -67,16 +177,30 @@
             <p class="eyebrow">Scientific Journal Publication Trend Tracking System</p>
             <h1 id="pageTitle">Research intelligence workspace</h1>
           </div>
-          <div class="user-chip" aria-label="Current user">
-            <span id="activeRole">Researcher</span>
-            <strong>User</strong>
+          <div class="user-section">
+            <div class="user-chip" aria-label="Current user">
+              <span id="activeRole">User</span>
+              <strong data-i18n="userName">User</strong>
+            </div>
+
+            <div class="top-actions">
+              <button type="button" class="btn-theme" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">Light</button>
+              <label class="lang-select" aria-label="Language">
+                <select id="languageSelect" aria-label="Language">
+                  <option value="en" selected>EN</option>
+                  <option value="vi">VI</option>
+                </select>
+              </label>
+              <button type="button" class="btn-logout" id="logoutBtn" title="Logout" data-i18n="logoutBtn">Logout</button>
+            </div>
           </div>
+
         </header>
 
         <section class="hero-band">
           <div>
             <p class="eyebrow">UML-driven interface</p>
-            <h2>Track journals, articles, fields, saved searches, and publication trends in one workflow.</h2>
+            <h2>Track journals, articles, fields, researcher approvals, article submissions, and publication trends in one workflow.</h2>
           </div>
           <div class="hero-actions">
             <button class="primary-action" type="button" data-view-jump="search">Search Journals</button>
@@ -107,6 +231,15 @@
               <small>Researcher-owned queries</small>
             </article>
           </div>
+
+          <section class="panel access-panel" id="roleAccessPanel">
+            <div>
+              <p class="eyebrow">Account Access</p>
+              <h2 id="accessTitle">Reader account</h2>
+              <p id="accessDescription">You can read dashboards, inspect journal details, and search publication data.</p>
+            </div>
+            <button class="primary-action" type="button" id="requestResearcherButton">Request Researcher Access</button>
+          </section>
 
           <div class="dashboard-grid">
             <article class="panel wide">
@@ -220,6 +353,50 @@
           </section>
         </section>
 
+        <section class="view" id="postsView" data-title="Researcher article submission">
+          <div class="split-layout">
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Researcher.articleSubmissions</p>
+                  <h2>Submit an article</h2>
+                </div>
+              </div>
+              <form id="postFormElement" class="form-group">
+                <div class="form-field">
+                  <label for="postTitleInput">Article title</label>
+                  <input type="text" id="postTitleInput" placeholder="Enter article title" required />
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="postJournalSelect">Journal</label>
+                    <select id="postJournalSelect" required></select>
+                  </div>
+                  <div class="form-field">
+                    <label for="postFieldSelect">Field</label>
+                    <select id="postFieldSelect" required></select>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label for="postAbstractInput">Abstract</label>
+                  <textarea id="postAbstractInput" placeholder="Short abstract for admin review" required></textarea>
+                </div>
+                <button class="primary-action full" type="submit">Submit for Review</button>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">My Articles</p>
+                  <h2>Submission status</h2>
+                </div>
+              </div>
+              <div class="post-list" id="researcherPostList"></div>
+            </section>
+          </div>
+        </section>
+
         <section class="view" id="editorView" data-title="Editor journal management">
           <section class="panel">
             <div class="panel-heading">
@@ -233,16 +410,57 @@
           </section>
         </section>
 
-        <section class="view" id="adminView" data-title="Admin user management">
+        <section class="view" id="adminView" data-title="Admin Dashboard & User Management">
+          <!-- Admin Dashboard Header -->
+          <section class="hero-band admin-hero">
+            <div>
+              <p class="eyebrow">Administration Panel</p>
+              <h2>System Management & User Control Center</h2>
+            </div>
+            <div class="hero-actions">
+              <button class="primary-action" type="button" id="addUserButton">+ Add New User</button>
+              <button class="secondary-action" type="button" id="refreshStatsButton">Refresh Stats</button>
+            </div>
+          </section>
+
+          <!-- Admin Statistics Cards -->
+          <div class="metric-grid admin-metrics">
+            <article class="metric-card">
+              <span>Total Users</span>
+              <strong id="totalUsersMetric">0</strong>
+              <small>Total registered</small>
+            </article>
+            <article class="metric-card">
+              <span>Pending Researcher</span>
+              <strong id="researcherCountMetric">0</strong>
+              <small>Waiting for approval</small>
+            </article>
+            <article class="metric-card">
+              <span>Researchers</span>
+              <strong id="editorCountMetric">0</strong>
+              <small>Approved posting access</small>
+            </article>
+            <article class="metric-card">
+              <span>Pending Articles</span>
+              <strong id="pendingPostsMetric">0</strong>
+              <small>Awaiting admin review</small>
+            </article>
+          </div>
+
+          <!-- User Management Section -->
           <section class="panel">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">Admin</p>
-                <h2>Manage users</h2>
+                <p class="eyebrow">User Management</p>
+                <h2>All registered users</h2>
               </div>
-              <button class="primary-action" type="button" id="addUserButton">Add User</button>
+              <div class="search-box">
+                <span aria-hidden="true">🔍</span>
+                <input type="search" id="adminUserSearch" placeholder="Search by name or email" />
+              </div>
             </div>
-            <div class="user-table-wrap">
+
+            <div class="admin-user-table">
               <table>
                 <thead>
                   <tr>
@@ -250,12 +468,105 @@
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Researcher Access</th>
                     <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody id="userTable"></tbody>
+                <tbody id="adminUserTable"></tbody>
               </table>
             </div>
+          </section>
+
+          <!-- User Details Modal -->
+          <div class="modal" id="userModal">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h2 id="userModalTitle">Add New User</h2>
+                <button type="button" class="modal-close" id="closeUserModal">&times;</button>
+              </div>
+
+              <form id="userFormElement" class="form-group">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="userFormName">Full Name</label>
+                    <input type="text" id="userFormName" placeholder="User full name" required />
+                  </div>
+                  <div class="form-field">
+                    <label for="userFormEmail">Email Address</label>
+                    <input type="email" id="userFormEmail" placeholder="user@example.com" required />
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="userFormRole">Role</label>
+                    <select id="userFormRole" required>
+                      <option value="User">User</option>
+                      <option value="Researcher">Researcher</option>
+                      <option value="Admin">Admin</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label for="userFormStatus">Status</label>
+                    <select id="userFormStatus" required>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Assigned">Assigned</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-field">
+                  <label for="userFormPassword">Password</label>
+                  <input type="password" id="userFormPassword" placeholder="Enter password" minlength="6" />
+                  <small id="passwordHint">Leave empty to keep existing password</small>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn-primary">Save User</button>
+                  <button type="button" class="btn-secondary" id="cancelUserForm">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Article Management</p>
+                <h2>Researcher submissions</h2>
+              </div>
+            </div>
+
+            <div class="admin-user-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Article ID</th>
+                    <th>Title</th>
+                    <th>Researcher</th>
+                    <th>Journal</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminPostTable"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- System Activity Log -->
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Recent Activity</p>
+                <h2>System log & events</h2>
+              </div>
+            </div>
+
+            <div class="activity-log" id="activityLog"></div>
           </section>
         </section>
 
