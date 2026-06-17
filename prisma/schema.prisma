@@ -35,6 +35,9 @@ model Paper {
   citationCount   Int     @default(0)
   sourceUrl       String?
   sourceProvider  String?
+  status          String  @default("Pending")
+  researcherId    String?
+  researcherName  String?
 
   journalId String?
   journal   Journal? @relation(fields: [journalId], references: [id])
@@ -123,6 +126,7 @@ model PaperKeyword {
 
   @@id([paperId, keywordId])
 }
+
 model SystemSetting {
   id          String   @id @default(uuid())
   key         String   @unique
